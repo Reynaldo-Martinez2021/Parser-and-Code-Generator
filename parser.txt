@@ -1,0 +1,195 @@
+Assignment Overview
+===================
+
+lexeme* list: holds the entirety of the input in token format
+    token_type will be useful to you when identifying an index's type
+
+Note: Because driver only calls parse when there are no errors we know the list will never contain errors
+
+Functionally we don't know how many entries are in the list but error recognition should prevent infinite looping
+
+The Parser analyzes the input program for syntactical correctness
+- if the program is incorrect we must print error messages
+- else print out symbol table if (table_flag) and assembly code if (code_flag)
+
+opcode_name, defines all the three letter opcodes with their numerical value (DIV = 4, etc)
+    - use this when emitting instructions
+
+    - when specifying emitting an instruction we don't know L or M values, but safe to assume they're 0
+        - for example, L is 0 for all instructions except LOD, STO, and CL 
+        - We say to emit ADD, etc but expect you to know that ADD is the M field and you use OPR for the op field
+
+
+Grammar
+=======
+[] - means an optional item
+{} - means repeat 0/more times
+Terminal Symbols - are enclosed in quote marks
+    Identifiers and Numbers should be treated as terminal symbols 
+. - used to indicate the end of the definition of a syntactic class
+
+
+Error Handling
+==============
+2 types of errors: 
+    Non-stopping - recognize and move past
+    Stopping - halt the program completely
+             - no system calls to exit function rather use variable as error flag 
+             
+When a function finds an error, it should call the "print_parser_error" function with the error code
+    - Set global variable to 1 (non-stopping) or -1 (stopping)
+    - if error is stopping the function should return
+        - stopping errors should cause the flow of control to backtrack to parser so the program can end
+
+After a function calls another function, check if the error flag
+    - if its -1 then function should return
+
+In "parser" after the final error check, if the error flag is still 0
+    - call the functions that print assembly code and symbol table if corresponding flags are true
+    - then return the code array
+
+
+Implementing the Parser and Code Generator
+==========================================
+
+Variables
+---------
+All global variables have already been defined, additional variables are to be defined locally
+    - this function is recursive which means any calls will overwrite the values if you make them global
+
+All global vairables need to be used
+
+'Error' is used to determine if the program encountered an error
+'Level' holds the current lexographical level at your current spot in the input program
+
+There are 3 arrays and 3 indexing variables:
+
+lexeme *tokens and token_index
+    - 'tokens' does not need to be defines, assign the input argument list for this variable
+
+symbol *table and table_index
+    - 'table' will store the information for all the procedures, variables, and constants in the program
+        - use ARRAY_SIZE and calloc for its definition
+
+    - 'table_index' always points to the next empty space in the table
+
+instruction *code and code_index
+    - 'code' stores the instructions and will be returned if no errors
+        - use ARRAY_SIZE and calloc for its definition
+
+    - 'code_index' always points to the next empty space in the code
+
+Don't alter the names because other functions use their specific names (they're global variables)
+
+
+Functions
+---------
+
+Must implement a function for every non-terminal character defined in the grammar, with two exceptions: 
+
+Program is the only non-recursive non-terminal character
+    - it is only called once when the parser begins processing
+    - its not strictly necessary for program to be its own function and can combine it with the "parser" function
+
+Rel-op acts more as a category of tokens than as a grammar structure
+
+There are 3 printing functions and 5 support functions:
+
+Printing:
+    void print_assembly_code(); 
+        - call at the end before returning if there were no errors and if (code_flag)
+
+    void print_symbol_table();
+        - call at the end before returning if there were no errors and if (table_flag)
+
+    void print_parser_error(int error_code, int case_code);
+        - call when you find an error to print the error messages
+            - some errors have multiple cases
+                - if an error doesn't have cases, the value of case_code doesn't matter
+
+Support:
+    void emit(int op, int l, int m);
+        - adds an instrcution to code array and incremements 'code_index'
+
+    void add_symbol(int kind, char name[], int value, int level, int address);
+        - adds a symbol to the code array and incremements 'table_index'
+
+    void mark();
+        - called at the end of block
+        - marks all the symbols that belong to the active procedure so other procedures know they are inaccessible
+
+    int multiple_declaration_check(char name[]);
+        - used in declaration functions to check if potential symbol name has already been used
+        by another symbol in the active procedure
+
+    int find_symbol(char name[], int kind);
+        - used in statement and factor to find the symbol being referenced
+        - prioritizes symbols belonging to the active procedure of symbols that belong to its parent procedures
+
+Note: Shouldn't need to implement any additional support functions
+
+
+Errors and they're type
+=======================
+1. Missing . (always non-stopping because this is very last symbol of any program)
+
+2. Missing Identifier
+    1. after keyword const (sometimes non-stopping)
+    2. after keyword var (sometimes non-stopping)
+    3. after keyword procedure (sometimes non-stopping)
+    4. after keyword call (sometimes non-stopping)
+    5. after keyword read (sometimes non-stopping)
+    6. after keyword def (sometimes non-stopping)
+
+3. Identifer is declared multiple times by a procedure (always non-stopping)
+
+4. Missing := in
+    1. constant declaration (sometimes non-stopping)
+    2. assignment statement (sometimes non-stopping)
+
+5. Missing number in constant declartion (sometimes non-stopping)
+
+6. Missing ; after
+    1. constant declartion (sometimes non-stopping)
+    2. variable declaration (sometimes non-stopping)
+    3. procedure declaration (sometimes non-stopping)
+    4. statement in begin-end (always stopping)
+
+7. procedures and constants cannot be assigned to (always non-stopping)
+
+8. undeclared identifer used in
+    1. assignment statement (always non-stopping)
+    2. call statement (always non-stopping)
+    3. read statement (always non-stopping)
+    4. define statement (always non-stopping)
+    5. arithmetic expression (always non-stopping)
+
+9. variables and constants cannot be called (always non-stopping)
+
+10. begin must be followed by end (sometimes non-stopping)
+
+11. if must be followed by then (sometimes non-stopping)
+
+12. while must be followed by do (sometimes non-stopping)
+
+13. procedures and constants cannot be read (always non-stopping)
+
+14. variables and constants cannot be defined
+
+15. Missing { (sometimes non-stopping)
+
+16. '{' must be followed by '}' (sometimes non-stopping)
+
+17. missing relational operator (sometimes non-stopping)
+
+18. procedures cannot be used in arithmetic (always non-stopping)
+
+19. '(' must be followed by ')' (sometimes non-stopping)
+
+20. invalid expression (sometimes non-stopping)
+
+21. procedure being called has not been defined (always non-stopping)
+
+22. procedures can only be defined within the procedure that declares them (always non-stopping)
+
+23. procedures cannot be define multiple times (always non-stopping)
