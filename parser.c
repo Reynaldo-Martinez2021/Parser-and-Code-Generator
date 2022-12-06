@@ -29,8 +29,8 @@ void program();
 void block();
 void declarations();
 void const_declaration();
-int var_declaration(int number_of_variables);
-int proc_declaration();
+void var_declaration(int number_of_variables);
+void proc_declaration();
 void statement();
 void condition();
 void expression();
@@ -39,6 +39,8 @@ void factor();
 int rel_operator();
 
 int getType();
+
+// For long if statements try to add keyword_return for error codes to try to change from Aedo
 
 instruction *parse(int code_flag, int table_flag, lexeme *list)
 {
@@ -125,7 +127,7 @@ void declaractions()
 
 		else if (tokens[token_index].type == keyword_var)
 		{
-			vars_declared = var_declaration(vars_declared);
+			var_declaration(vars_declared);
 		}
 
 		else if (tokens[token_index].type == keyword_procedure)
@@ -139,11 +141,168 @@ void declaractions()
 
 void const_declaration()
 {
+	char name[11];
+	int symbol_index;
+	int type;
+	int value;
+	int minus_flag;
+
+	if (tokens[token_index].type != identifier)
+	{
+		print_parser_error(2,1);
+	}
+
+
+
+	
 }
 
-int var_declaration(int number_of_variables)
+// 
+	// 	if (minus_flag)
+	// 		value = value * ;
+
+
+	// 	// first param: 1,2,3, name, level
+	// 	add_symbol(1, name, value, level, 0);
+
+	// 	if (tokens[token_index].type != semicolon)
+	// 	{
+	// 		type = tokens[token_index].type;
+
+	// 		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
+	// 			type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
+	// 			type == keyword_read || type == keyword_write || type == keyword_def || type == period || type == right_curly_brace)
+	// 			error = 1;
+	// 	}
+	// 	else
+	// 	}
+	// 		error = -1;
+	// 		return;
+	// 	}
+	// }
+	// else
+	// 	token_index++;
+
+void var_declaration(int number_of_variables)
 {
-	return 0;
+	char name[11];
+	int symbol_index;
+	int type;
+
+	token_index++;
+
+	if (tokens[token_index].type != identifier)
+	{
+		print_parser_error(2,2);
+
+		if (tokens[token_index].type == semicolon)
+		{
+			error = 1;
+			strcpy(name, "null");
+		}
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+	else
+	{
+		symbol_index = multiple_declaration_check(tokens[token_index].identifier_name);
+		// can be !=?? figure out later
+		if (symbol_index != -1)
+		{
+			print_parser_error(3, 0);
+			error = 1;
+		}
+
+		strcpy(name, tokens[token_index].identifier_name);
+		token_index++;
+	}
+
+	// DEBUG THIS LINE
+	add_symbol(2, name, 0, level, number_of_variables + 3);
+	
+	if (tokens[token_index].type != semicolon)
+	{
+		type = tokens[token_index].type;
+
+		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
+			type == keyword_call || type == keyword_begin || type == keyword_begin || type == keyword_if ||
+			type == keyword_read || type == keyword_write || type == keyword_def || type == period ||
+			type == right_curly_brace)
+			error = 1;
+
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+
+	else
+		token_index++;
+
+}
+
+void procedure() {
+	char name[11];
+	int symbol_index;
+	int type;
+
+	token_index++;
+
+	if (tokens[token_index].type != identifier)
+	{
+		print_parser_error(2,3);
+
+		if (tokens[token_index].type == semicolon)
+		{
+			error = 1;
+			strcpy(name, "null");
+		}
+		else
+		{
+			error = -1;
+			return;
+		}
+		
+	}
+
+	else
+	{
+		symbol_index = multiple_declaration_check(tokens[token_index].identifier_name);
+		// can be !=?? figure out later
+		if (symbol_index != -1)
+		{
+			print_parser_error(3, 0);
+			error = 1;
+		}
+
+		strcpy(name, tokens[token_index].identifier_name);
+		token_index++;
+	}
+
+	// kind == 1 || 3
+	add_symbol(3, name, 0, level, -1);
+
+	if (tokens[token_index].type != semicolon)
+	{
+		type = tokens[token_index].type;
+
+		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
+			type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
+			type == keyword_read || type == keyword_write || type == keyword_def || type == period || type == left_curly_brace)
+			error = 1;
+
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+	else
+		token_index++;
 }
 
 void statement()
@@ -603,29 +762,29 @@ void condition()
 
 	switch (type)
 	{
-	case equal_to:
-		emit(OPR, 0, EQL);
-		break;
+		case equal_to:
+			emit(OPR, 0, EQL);
+			break;
 
-	case not_equal_to:
-		emit(OPR, 0, NEQ);
-		break;
+		case not_equal_to:
+			emit(OPR, 0, NEQ);
+			break;
 
-	case less_than:
-		emit(OPR, 0, LSS);
-		break;
+		case less_than:
+			emit(OPR, 0, LSS);
+			break;
 
-	case greater_than:
-		emit(OPR, 0, GTR);
-		break;
+		case greater_than:
+			emit(OPR, 0, GTR);
+			break;
 
-	case greater_than_or_equal_to:
-		emit(OPR, 0, GEQ);
-		break;
+		case greater_than_or_equal_to:
+			emit(OPR, 0, GEQ);
+			break;
 
-	default:
-		emit(OPR, 0, -1);
-		break;
+		default:
+			emit(OPR, 0, -1);
+			break;
 	}
 }
 
