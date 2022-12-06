@@ -146,6 +146,427 @@ int var_declaration(int number_of_variables)
 	return 0;
 }
 
+void statement()
+{
+	int symbol_idx;
+	int l = -1, m = -1;
+	int type;
+	int if_jpc, if_jmp, while_jpc, while_jmp, def_jmp;
+
+	switch (tokens[token_index].type)
+	{
+		case identifier:
+		{
+			symbol_idx = find_symbol(tokens[token_index].identifier_name, 2);
+
+			if (symbol_idx == -1)
+			{
+
+				// undeclared identifier
+				if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 3))
+					print_parser_error(8, 1);
+				else
+					print_parser_error(7, 0);
+
+				error = 1;
+			}
+
+			else
+			{
+				l = level - table[symbol_idx].level;
+				m = table[symbol_idx].address;
+			}
+
+			token_index++;
+
+			// missing :=
+			if (tokens[token_index].type != assignment_symbol)
+			{
+				print_parser_error(4, 2);
+
+				type = tokens[token_index].type;
+
+				if (type == identifier || type == number || type == left_parenthesis)
+					error = 1;
+
+				else
+				{
+					error = -1;
+					return;
+				}
+			}
+
+			else
+				token_index++;
+
+			expression();
+			if (error = -1)
+				return;
+
+			emit(STO, l, m);
+			break;
+		}
+
+		case keyword_call:
+		{
+			token_index++;
+
+			// missing indetifier
+			if (tokens[token_index].type != identifier)
+			{
+				print_parser_error(2, 4);
+				type = tokens[token_index].type;
+
+				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end)
+					error = 1;
+
+				else
+				{
+					error = -1;
+					return;
+				}
+			}
+
+			else
+			{
+				// this might be a 3 instead of 1
+				symbol_idx = find_symbol(tokens[token_index].identifier_name, 3);
+
+				if (symbol_idx == -1)
+				{
+					// this might be a 3 instead of 1
+					if (find_symbol(tokens[token_index].identifier_name, 2) == find_symbol(tokens[token_index].identifier_name, 3))
+						print_parser_error(8, 2);
+					else
+						print_parser_error(9, 0);
+
+					error = 1;
+				}
+
+				else
+				{
+					l = level - table[symbol_idx].level;
+					m = symbol_idx;
+				}
+
+				token_index++;
+			}
+
+			emit(CAL, l, m);
+			break;
+		}
+
+		case keyword_begin:
+		{
+			do
+			{
+				token_index++;
+				statement();
+
+				if (error == -1)
+					return;
+			} while (tokens[token_index].type == semicolon);
+
+			if (tokens[token_index].type != keyword_end)
+			{
+				type = tokens[token_index].type;
+
+				// why don't we check for keyword_return?? figure out later
+				if (type == identifier || type == keyword_call || type == keyword_begin ||
+					type == keyword_if || type == keyword_while || type == keyword_read ||
+					type == keyword_write || type == keyword_def)
+
+				{
+					print_parser_error(6, 4);
+					error = -1;
+					return;
+				}
+				// missing end
+				else
+				{
+					print_parser_error(10, 0);
+					// why don't we check for error?? figure out later
+					if (type == period || type == right_curly_brace || type == semicolon)
+						error = 1;
+
+					else
+					{
+						error = -1;
+						return;
+					}
+				}
+			}
+
+			else
+				token_index++;
+
+			break;
+		}
+
+		case keyword_if:
+		{
+			token_index++;
+			condition();
+
+			if (error = -1)
+				return;
+			if_jpc = code_index;
+			emit(JPC, 0, 0);
+
+			// missing then
+			if (tokens[token_index].type != keyword_then)
+			{
+				print_parser_error(11, 0);
+				type = tokens[token_index].type;
+
+				// why no return?? Add it later?? figure it out later
+				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end ||
+					type == identifier || type == keyword_call || type == keyword_begin || type == keyword_if ||
+					type == keyword_while || type == keyword_read || type == keyword_write || type == keyword_def)
+					error = 1;
+
+				else
+				{
+					error = -1;
+					return;
+				}
+			}
+			else
+				token_index++;
+
+			statement();
+			if (error == -1)
+				return;
+
+			code[if_jpc].m = code_index;
+			break;
+		}
+
+		case keyword_while:
+		{
+			// these might be token_index++ or code_index++;
+			token_index++;
+
+			while_jmp = code_index;
+
+			condition();
+			if (error == -1)
+				return;
+
+			if (tokens[token_index].type != keyword_do)
+			{
+				print_parser_error(12, 0);
+
+				type = tokens[token_index].type;
+
+				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end ||
+					type == identifier || type == keyword_call || type == keyword_begin || type == keyword_if ||
+					type == keyword_while || type == keyword_read || type == keyword_write || type == keyword_def)
+					error = 1;
+
+				else
+				{
+					error = -1;
+					return;
+				}
+			}
+			else
+				token_index++;
+
+			// not sure if this is code_index
+			while_jpc = code_index;
+			emit(JPC, 0, 0);
+
+			statement();
+			if (error == -1) return;
+
+			emit(JMP, 0, while_jmp);
+
+			// this is either while_jmp or while_jpc
+			code[while_jmp].m = code_index;
+			break;
+		}
+
+		case keyword_read:
+		{
+			token_index++;
+
+			if (tokens[token_index].type != identifier) 
+			{
+				print_parser_error(2, 5);
+
+				type = tokens[token_index].type;
+				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end)
+					error = 1;
+
+				else 
+				{
+					error = -1;
+					return;
+				}
+			}
+
+			else
+			{
+				symbol_idx = find_symbol(tokens[token_index].identifier_name, 2);
+
+				if (symbol_idx == -1)
+				{
+					if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 3))
+						print_parser_error(8,3);
+					else
+						print_parser_error(13,0);
+
+					error = 1;
+				}
+
+				else
+				{
+					l = level - table[symbol_idx].level;
+					m = table[symbol_idx].address;
+				}
+
+				token_index++;
+			}
+
+			emit(SYS, 0, RED);
+
+			emit(STO, l, m);
+			break;
+		}
+
+		case keyword_write:
+		{
+			token_index++;
+
+			expression();
+			if (error == -1) return;
+
+			emit(SYS, 0, WRT);
+			break;
+		}
+
+		case keyword_def:
+		{
+			token_index++;
+
+			if (tokens[token_index].type != identifier) 
+			{
+				print_parser_error(2,6);
+
+				if (tokens[token_index].type == left_curly_brace)
+				{
+					error = 1;
+					symbol_idx = -1;
+				}
+				else
+				{
+					error = -1;
+					return;
+				}
+			}
+			else
+			{
+				// might be 1 or 2 or 3
+				symbol_idx = find_symbol(tokens[token_index].identifier_name, 3);
+
+				if (symbol_idx == -1)
+				{
+					// the second number might be 2 or 3
+					if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 2))
+						print_parser_error(8,4);
+					else
+						print_parser_error(14, 0);
+
+					error = 1;
+				}
+
+				else
+				{
+					if (table[symbol_idx].level != level)
+					{
+						print_parser_error(23,0);
+						error = 1;
+						symbol_idx = -1;
+					}
+
+					else if (table[symbol_idx].address != -1)
+					{
+						print_parser_error(22,0);
+						error = 1;
+						symbol_idx = -1;
+					}
+				}
+
+				token_index++;
+			}
+
+			if (tokens[token_index].type != left_curly_brace)
+			{
+				print_parser_error(15,0);
+				type = tokens[token_index].type;
+
+				if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
+					type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
+					type == keyword_read || type == keyword_write || type == keyword_def || type == right_curly_brace)
+					error = 1;
+
+				else 
+				{
+					error = -1;
+					return;
+				}
+			}
+			else
+				token_index++;
+
+			def_jmp = code_index;
+			emit(JMP, 0, 0);
+
+			if (symbol_idx != -1)
+				table[symbol_idx].address = code_index;
+
+			block();
+			if (error == -1) return;
+
+			if (code[code_index - 1].op != RTN)
+				emit(RTN, 0, 0);
+
+			code[def_jmp].m = code_index;
+
+			if (tokens[token_index].type != right_curly_brace)
+			{
+				print_parser_error(16,0);
+				type = tokens[token_index].type;
+				if (type == period || type == right_curly_brace || type == semicolon)
+					error = 1;
+
+				else
+				{
+					error = -1;
+					return;
+				}
+			}
+			else
+				token_index++;
+			break;
+		}
+
+		case keyword_return:
+		{
+			if (level == 0)
+				emit(SYS, 0, HLT);
+			else
+				emit(RTN, 0, 0);
+
+			token_index++;
+		}
+
+		default:
+			return;
+	}
+}
+
 void condition()
 {
 	int type;
