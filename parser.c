@@ -36,7 +36,6 @@ void condition();
 void expression();
 void term();
 void factor();
-int rel_operator();
 
 int getType();
 
@@ -49,8 +48,7 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 	code = calloc(ARRAY_SIZE, sizeof(instruction));
 
 	program();
-	if (error == -1)
-		return;
+	if (error == -1) return NULL;
 
 	code[code_index].op = -1;
 
@@ -63,6 +61,11 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 	{
 		print_assembly_code();
 	}
+
+	if (error == 0)
+		return code;
+ 
+   	return NULL;
 }
 
 void program()
@@ -82,19 +85,28 @@ void program()
 		error = 1;
 	}
 
+	// DEBUG THIS SHIT TOO cause Im not sure what's happening here
+
 	for (int i = 0; i < code_index; i++)
 	{
-		if (code[i].op == 5)
+		if (code[i].op == CAL)
 		{
-			if (code[i].m == 0)
-			{
-				// Error 21
-				print_parser_error(21, 0);
-			}
+			if (code[i].m == -1)
+				continue;
 
-			code[i].m = table[code[i].m].address;
+			else if (table[code[i].m].address == -1)
+				print_parser_error(21, 0);
+			
+			else
+				code[i].m = table[code[i].m].address;
 		}
 	}
+
+	// this is halt
+	emit(9, 0, 3);
+
+	code[0].m = table[0].address;
+	return;
 }
 
 void block()
@@ -113,6 +125,8 @@ void block()
 	level--;
 }
 
+// DBBUG THIS FUNCTION
+
 void declaractions()
 {
 	int vars_declared = 0;
@@ -128,6 +142,7 @@ void declaractions()
 		else if (tokens[token_index].type == keyword_var)
 		{
 			var_declaration(vars_declared);
+			vars_declared++;
 		}
 
 		else if (tokens[token_index].type == keyword_procedure)
@@ -139,49 +154,29 @@ void declaractions()
 	emit(7, 0, vars_declared + 3);
 }
 
+// DEBUG THIS FUNCTION
+
 void const_declaration()
 {
-	char name[11];
-	int symbol_index;
-	int type;
-	int value;
-	int minus_flag;
+	// char name[11];
+	// int symbol_index, type, value, minus_flag;
 
-	if (tokens[token_index].type != identifier)
-	{
-		print_parser_error(2,1);
-	}
+	// token_index++;
 
+	// if (tokens[token_index].type != identifier)
+	// {
+	// 	print_parser_error(2,1);
 
+	// 	if (tokens[token_index + 1].type != assignment_symbol)
+	// 	{
+	// 		print_parser_error(4,1);
+
+	// 		if (tokens[token_index + 2].type == )
+	// 	}
+	// }
 
 	
 }
-
-// 
-	// 	if (minus_flag)
-	// 		value = value * ;
-
-
-	// 	// first param: 1,2,3, name, level
-	// 	add_symbol(1, name, value, level, 0);
-
-	// 	if (tokens[token_index].type != semicolon)
-	// 	{
-	// 		type = tokens[token_index].type;
-
-	// 		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
-	// 			type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
-	// 			type == keyword_read || type == keyword_write || type == keyword_def || type == period || type == right_curly_brace)
-	// 			error = 1;
-	// 	}
-	// 	else
-	// 	}
-	// 		error = -1;
-	// 		return;
-	// 	}
-	// }
-	// else
-	// 	token_index++;
 
 void var_declaration(int number_of_variables)
 {
@@ -209,7 +204,7 @@ void var_declaration(int number_of_variables)
 	else
 	{
 		symbol_index = multiple_declaration_check(tokens[token_index].identifier_name);
-		// can be !=?? figure out later
+		// can be ==?? figure out later
 		if (symbol_index != -1)
 		{
 			print_parser_error(3, 0);
@@ -245,7 +240,7 @@ void var_declaration(int number_of_variables)
 
 }
 
-void procedure() {
+void proc_declaration() {
 	char name[11];
 	int symbol_index;
 	int type;
