@@ -1,4 +1,11 @@
-// We need at least 30 points on this programming assignment to get an A in the clas
+/*
+	COP 3402: System Software
+	Fall 2022
+	Homework #3 Parser-Code Generator
+	Reynaldo Martinez
+	John Dufresne
+	Tyler Slakman
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -158,24 +165,103 @@ void declaractions()
 
 void const_declaration()
 {
-	// char name[11];
-	// int symbol_index, type, value, minus_flag;
+	char name[11];
+	int symbol_index, type, value, minus_flag = 0;
 
-	// token_index++;
+	token_index++;
 
-	// if (tokens[token_index].type != identifier)
-	// {
-	// 	print_parser_error(2,1);
+	if (tokens[token_index].type != identifier)
+	{
+		print_parser_error(2,1);
 
-	// 	if (tokens[token_index + 1].type != assignment_symbol)
-	// 	{
-	// 		print_parser_error(4,1);
+		if (tokens[token_index].type == assignment_symbol)
+		{
+			error = 1;
+			strcpy(name, "null");
+		}
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+	else
+	{
+		symbol_index = multiple_declaration_check(tokens[token_index].identifier_name);
+		if (symbol_index != -1)
+		{
+			print_parser_error(3,0);
+			error = 1;
+		}
+		strcpy(name, tokens[token_index].identifier_name);
+		token_index++;
+	}
 
-	// 		if (tokens[token_index + 2].type == )
-	// 	}
-	// }
+	if (tokens[token_index].type != assignment_symbol)
+	{
+		print_parser_error(4,1);
+		
+		if (tokens[token_index].type == minus)
+		{
+			minus_flag = 1;
+			error = 1;
+		}
 
-	
+		if (tokens[token_index].type == number)
+		{
+			error = 1;
+		}
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+	else
+		token_index++;
+
+	if (tokens[token_index].type != number)
+	{
+		print_parser_error(5,0);
+
+		if (tokens[token_index].type == assignment_symbol)
+		{
+			error = 1;
+			value = 0;
+		}
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+	else
+	{
+		value = atoi(tokens[token_index].type);
+		token_index++;
+	}
+
+	if (minus_flag)
+		value = value * -1;
+
+	add_symbol(1, name, value, level, 0);
+
+	if (tokens[token_index].type != semicolon)
+	{
+		type = tokens[token_index].type;
+
+		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
+			type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
+			type == keyword_read || type == keyword_write || type == keyword_def || type == period || type == right_curly_brace)
+			error = 1;
+		else
+		{
+			error = -1;
+			return;
+		}
+	}
+	else
+		token_index++;
 }
 
 void var_declaration(int number_of_variables)
