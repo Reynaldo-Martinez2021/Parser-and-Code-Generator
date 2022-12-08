@@ -220,6 +220,10 @@ void const_declaration()
 	else
 		token_index++;
 
+	// we have a minus symbol so increase the index to the next spot
+	if (minus_flag)
+		token_index++;
+
 	if (tokens[token_index].type != number)
 	{
 		print_parser_error(5,0);
