@@ -50,14 +50,41 @@ int getType();
 
 instruction *parse(int code_flag, int table_flag, lexeme *list)
 {
+	int i;
 	tokens = list;
 	table = calloc(ARRAY_SIZE, sizeof(symbol));
 	code = calloc(ARRAY_SIZE, sizeof(instruction));
 
-	program();
-	if (error == -1) return NULL;
+	add_symbol(3,"main", 0, 0,0);
+	level = -1;
+	block();
 
-	code[code_index].op = -1;
+	if (error = -1)
+	{
+		free(table);
+		free(code);
+		return NULL;
+	}
+
+	if (tokens[token_index].type != period)
+	{
+		print_parser_error(1,0);
+		error = 1;
+	}
+
+	for (i = 0; i < code_index; i++)
+	{
+		if (code[i].op == CAL)
+		{
+			if (code[i].m == -1)
+				continue;
+			else if (table[code[i].m].address == -1)
+				print_parser_error(21, 0);
+			
+			else
+				code[i].m = table[code[i].m].address;
+		}
+	}
 
 	if (code_flag)
 	{
@@ -75,46 +102,46 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
    	return NULL;
 }
 
-void program()
-{
-	emit(7, 0, 0);
-	add_symbol(3, "main", 0, 0, 0);
-	level = -1;
-	block();
+// void program()
+// {
+// 	emit(7, 0, 0);
+// 	add_symbol(3, "main", 0, 0, 0);
+// 	level = -1;
+// 	block();
 
-	if (error == -1)
-		return;
+// 	if (error == -1)
+// 		return;
 
-	// Parser error 1 (missing .)
-	if (tokens[token_index].type != period)
-	{
-		print_parser_error(1, 0);
-		error = 1;
-	}
+// 	// Parser error 1 (missing .)
+// 	if (tokens[token_index].type != period)
+// 	{
+// 		print_parser_error(1, 0);
+// 		error = 1;
+// 	}
 
-	// DEBUG THIS SHIT TOO cause Im not sure what's happening here
+// 	// DEBUG THIS SHIT TOO cause Im not sure what's happening here
 
-	for (int i = 0; i < code_index; i++)
-	{
-		if (code[i].op == CAL)
-		{
-			if (code[i].m == -1)
-				continue;
+// 	for (int i = 0; i < code_index; i++)
+// 	{
+// 		if (code[i].op == CAL)
+// 		{
+// 			if (code[i].m == -1)
+// 				continue;
 
-			else if (table[code[i].m].address == -1)
-				print_parser_error(21, 0);
+// 			else if (table[code[i].m].address == -1)
+// 				print_parser_error(21, 0);
 			
-			else
-				code[i].m = table[code[i].m].address;
-		}
-	}
+// 			else
+// 				code[i].m = table[code[i].m].address;
+// 		}
+// 	}
 
-	// this is halt
-	emit(9, 0, 3);
+// 	// this is halt
+// 	emit(9, 0, 3);
 
-	code[0].m = table[0].address;
-	return;
-}
+// 	code[0].m = table[0].address;
+// 	return;
+// }
 
 void block()
 {
