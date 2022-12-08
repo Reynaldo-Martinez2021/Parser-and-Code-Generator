@@ -120,7 +120,7 @@ void block()
 {
 	level++;
 
-	declaractions();
+	declarations();
 	if (error == -1)
 		return;
 
@@ -134,7 +134,7 @@ void block()
 
 // DBBUG THIS FUNCTION
 
-void declaractions()
+void declarations()
 {
 	int vars_declared = 0;
 
