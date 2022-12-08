@@ -5,6 +5,7 @@
 	Reynaldo Martinez
 	John Dufresne
 	Tyler Slakman
+	Timothy Azinord
 */
 
 #include <stdlib.h>
@@ -55,10 +56,11 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 	table = calloc(ARRAY_SIZE, sizeof(symbol));
 	code = calloc(ARRAY_SIZE, sizeof(instruction));
 
+	emit(7,0,0);
 	add_symbol(3, "main", 0, 0, 0);
 	level = -1;
-	block();
 
+	block();
 	if (error == -1)
 	{
 		free(table);
@@ -72,17 +74,24 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 		error = 1;
 	}
 
+	emit(9,0,3);
+
 	for (i = 0; i < code_index; i++)
 	{
 		if (code[i].op == CAL)
 		{
 			if (code[i].m == -1)
+			{
 				continue;
+			}
 			else if (table[code[i].m].address == -1)
+			{
 				print_parser_error(21, 0);
-			
+			}
 			else
+			{
 				code[i].m = table[code[i].m].address;
+			}
 		}
 	}
 
@@ -109,12 +118,10 @@ void block()
 	level++;
 
 	declarations();
-	if (error == -1)
-		return;
+	if (error == -1) return;
 
 	statement();
-	if (error == -1)
-		return;
+	if (error == -1) return;
 
 	mark();
 	level--;
@@ -124,34 +131,32 @@ void block()
 
 void declarations()
 {
-	int vars_declared = 0;
+	int type;
+	int vars = 0;
 
-	while (tokens[token_index].type == (keyword_const || keyword_var || keyword_procedure))
+	type = tokens[token_index].type;
+	while (type == keyword_const || type == keyword_var || type == keyword_procedure)
 	{
-
-		if (tokens[token_index].type == keyword_const)
+		if (type == keyword_const)
 		{
 			const_declaration();
 		}
-
-		else if (tokens[token_index].type == keyword_var)
+		else if (type == keyword_var)
 		{
-			var_declaration(vars_declared);
-			vars_declared++;
+			var_declaration(vars);
+			vars++;
 		}
 
-		else if (tokens[token_index].type == keyword_procedure)
+		else if (type == keyword_procedure)
 		{
 			proc_declaration();
 		}
 
-		token_index++;
+		type = tokens[token_index].type;
 	}
-
-	emit(7, 0, vars_declared + 3);
+	
+	emit(7, 0, vars + 3);
 }
-
-// DEBUG THIS FUNCTION
 
 void const_declaration()
 {
@@ -159,7 +164,6 @@ void const_declaration()
 	int symbol_index, type, value, minus_flag = 0;
 
 	token_index++;
-
 	if (tokens[token_index].type != identifier)
 	{
 		print_parser_error(2,1);
@@ -191,13 +195,7 @@ void const_declaration()
 	{
 		print_parser_error(4,1);
 		
-		if (tokens[token_index].type == minus)
-		{
-			minus_flag = 1;
-			error = 1;
-		}
-
-		if (tokens[token_index].type == number)
+		if (tokens[token_index].type == minus || tokens[token_index].type == number)
 		{
 			error = 1;
 		}
@@ -206,19 +204,23 @@ void const_declaration()
 			error = -1;
 			return;
 		}
+		
 	}
 	else
 		token_index++;
 
 	// we have a minus symbol so increase the index to the next spot
-	if (minus_flag)
+	if (tokens[token_index].type == minus)
+	{
+		minus_flag = 1;
 		token_index++;
+	}
 
 	if (tokens[token_index].type != number)
 	{
 		print_parser_error(5,0);
 
-		if (tokens[token_index].type == assignment_symbol)
+		if (tokens[token_index].type == semicolon)
 		{
 			error = 1;
 			value = 0;
@@ -242,12 +244,16 @@ void const_declaration()
 
 	if (tokens[token_index].type != semicolon)
 	{
+		print_parser_error(6,1);
 		type = tokens[token_index].type;
 
 		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
 			type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
-			type == keyword_read || type == keyword_write || type == keyword_def || type == period || type == right_curly_brace)
+			type == keyword_read || type == keyword_write || type == keyword_def || type == period || 
+			type == right_curly_brace)
+		{
 			error = 1;
+		}
 		else
 		{
 			error = -1;
@@ -258,7 +264,7 @@ void const_declaration()
 		token_index++;
 }
 
-void var_declaration(int number_of_variables)
+void var_declaration(int variables)
 {
 	char name[11];
 	int symbol_index;
@@ -295,19 +301,20 @@ void var_declaration(int number_of_variables)
 		token_index++;
 	}
 
-	// DEBUG THIS LINE
-	add_symbol(2, name, 0, level, number_of_variables + 3);
+	add_symbol(2, name, 0, level, variables + 3);
 	
 	if (tokens[token_index].type != semicolon)
 	{
+		print_parser_error(6,2);
 		type = tokens[token_index].type;
 
 		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
 			type == keyword_call || type == keyword_begin || type == keyword_begin || type == keyword_if ||
 			type == keyword_read || type == keyword_write || type == keyword_def || type == period ||
 			type == right_curly_brace)
+		{
 			error = 1;
-
+		}
 		else
 		{
 			error = -1;
@@ -358,18 +365,20 @@ void proc_declaration() {
 		token_index++;
 	}
 
-	// we're dealing with procedures so it's 3
 	add_symbol(3, name, 0, level, -1);
 
 	if (tokens[token_index].type != semicolon)
 	{
+		print_parser_error(6,3);
 		type = tokens[token_index].type;
 
 		if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
 			type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
-			type == keyword_read || type == keyword_write || type == keyword_def || type == period || type == left_curly_brace)
+			type == keyword_read || type == keyword_write || type == keyword_def || type == period || 
+			type == left_curly_brace)
+		{
 			error = 1;
-
+		}
 		else
 		{
 			error = -1;
@@ -385,7 +394,7 @@ void statement()
 	int symbol_idx;
 	int l = -1, m = -1;
 	int type;
-	int if_jpc, if_jmp, while_jpc, while_jmp, def_jmp;
+	int if_jpc_op, if_jmp_op, while_jpc_op, while_jmp_op, def_jmp_op;
 
 	switch (tokens[token_index].type)
 	{
@@ -395,12 +404,15 @@ void statement()
 
 			if (symbol_idx == -1)
 			{
-
 				// undeclared identifier
 				if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 3))
+				{
 					print_parser_error(8, 1);
+				}
 				else
+				{
 					print_parser_error(7, 0);
+				}
 
 				error = 1;
 			}
@@ -421,17 +433,19 @@ void statement()
 				type = tokens[token_index].type;
 
 				if (type == identifier || type == number || type == left_parenthesis)
+				{
 					error = 1;
-
+				}
 				else
 				{
 					error = -1;
 					return;
 				}
 			}
-
 			else
+			{
 				token_index++;
+			}
 
 			expression();
 			if (error == -1) return;
@@ -451,8 +465,9 @@ void statement()
 				type = tokens[token_index].type;
 
 				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end)
+				{
 					error = 1;
-
+				}
 				else
 				{
 					error = -1;
@@ -505,7 +520,7 @@ void statement()
 				// why don't we check for keyword_return?? figure out later
 				if (type == identifier || type == keyword_call || type == keyword_begin ||
 					type == keyword_if || type == keyword_while || type == keyword_read ||
-					type == keyword_write || type == keyword_def)
+					type == keyword_write || type == keyword_def || type == keyword_return)
 
 				{
 					print_parser_error(6, 4);
@@ -518,8 +533,9 @@ void statement()
 					print_parser_error(10, 0);
 					// why don't we check for error?? figure out later
 					if (type == period || type == right_curly_brace || type == semicolon)
+					{
 						error = 1;
-
+					}
 					else
 					{
 						error = -1;
@@ -529,7 +545,9 @@ void statement()
 			}
 
 			else
+			{
 				token_index++;
+			}
 
 			break;
 		}
@@ -541,7 +559,7 @@ void statement()
 			condition();
 			if (error == -1) return;
 
-			if_jpc = code_index;
+			if_jpc_op = code_index;
 			emit(JPC, 0, 0);
 
 			// missing then
@@ -554,8 +572,9 @@ void statement()
 				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end ||
 					type == identifier || type == keyword_call || type == keyword_begin || type == keyword_if ||
 					type == keyword_while || type == keyword_read || type == keyword_write || type == keyword_def)
+				{
 					error = 1;
-
+				}
 				else
 				{
 					error = -1;
@@ -563,12 +582,14 @@ void statement()
 				}
 			}
 			else
+			{
 				token_index++;
+			}
 
 			statement();
 			if (error == -1) return;
 
-			code[if_jpc].m = code_index;
+			code[if_jpc_op].m = code_index;
 			break;
 		}
 
@@ -577,7 +598,7 @@ void statement()
 			// these might be token_index++ or code_index++;
 			token_index++;
 
-			while_jmp = code_index;
+			while_jmp_op = code_index;
 
 			condition();
 			if (error == -1)
@@ -601,18 +622,20 @@ void statement()
 				}
 			}
 			else
+			{
 				token_index++;
+			}
 
 			// not sure if this is code_index
-			while_jpc = code_index;
+			while_jpc_op = code_index;
 			emit(JPC, 0, 0);
 
 			statement();
 			if (error == -1) return;
 
-			emit(JMP, 0, while_jmp);
+			emit(JMP, 0, while_jmp_op);
 
-			code[while_jmp].m = code_index;
+			code[while_jmp_op].m = code_index;
 			break;
 		}
 
@@ -627,8 +650,9 @@ void statement()
 
 				type = tokens[token_index].type;
 				if (type == period || type == right_curly_brace || type == semicolon || type == keyword_end)
+				{
 					error = 1;
-
+				}
 				else 
 				{
 					error = -1;
@@ -645,11 +669,13 @@ void statement()
 				{
 					// undeclared identifier
 					if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 3))
+					{
 						print_parser_error(8,3);
-					// trying to read a const or a procedure
+					}
 					else
+					{
 						print_parser_error(13,0);
-
+					}
 					error = 1;
 				}
 
@@ -705,10 +731,13 @@ void statement()
 				if (symbol_idx == -1)
 				{
 					if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 2))
+					{
 						print_parser_error(8,4);
+					}
 					else
+					{
 						print_parser_error(14, 0);
-
+					}
 					error = 1;
 				}
 
@@ -740,8 +769,9 @@ void statement()
 				if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
 					type == keyword_call || type == keyword_begin || type == keyword_if || type == keyword_while ||
 					type == keyword_read || type == keyword_write || type == keyword_def || type == right_curly_brace)
+				{
 					error = 1;
-
+				}
 				else 
 				{
 					error = -1;
@@ -749,9 +779,11 @@ void statement()
 				}
 			}
 			else
+			{
 				token_index++;
+			}
 
-			def_jmp = code_index;
+			def_jmp_op = code_index;
 			emit(JMP, 0, 0);
 
 			if (symbol_idx != -1)
@@ -763,15 +795,16 @@ void statement()
 			if (code[code_index - 1].op != RTN)
 				emit(RTN, 0, 0);
 
-			code[def_jmp].m = code_index;
+			code[def_jmp_op].m = code_index;
 
 			if (tokens[token_index].type != right_curly_brace)
 			{
 				print_parser_error(16,0);
 				type = tokens[token_index].type;
 				if (type == period || type == semicolon || type == keyword_end)
+				{
 					error = 1;
-
+				}
 				else
 				{
 					error = -1;
@@ -779,18 +812,25 @@ void statement()
 				}
 			}
 			else
+			{
 				token_index++;
+			}
 			break;
 		}
 
 		case keyword_return:
 		{
 			if (level == 0)
+			{
 				emit(SYS, 0, HLT);
+			}
 			else
+			{
 				emit(RTN, 0, 0);
+			}
 
 			token_index++;
+			break; 
 		}
 
 		default:
@@ -877,9 +917,13 @@ void expression()
 		if (error == -1) return;
 
 		if (type == plus)
+		{
 			emit(OPR, 0, ADD);
+		}
 		else
+		{
 			emit(OPR, 0, SUB);
+		}
 
 		type = tokens[token_index].type;
 	}
@@ -900,11 +944,14 @@ void term()
 		factor();
 		if (error == -1) return;
 
-
-		if (type == times)
-			emit(OPR, 0, MUL);
-		else
+		if (type == division)
+		{
 			emit(OPR, 0, DIV);
+		}
+		else
+		{
+			emit(OPR, 0, MUL);
+		}
 
 		type = tokens[token_index].type;
 	}
@@ -922,8 +969,8 @@ void factor()
 
 		if (const_idx == var_idx)
 		{
-
-			if (find_symbol(tokens[token_index].identifier_name, 1) == -1)
+			// check number
+			if (find_symbol(tokens[token_index].identifier_name, 3) == -1)
 			{
 				print_parser_error(8, 5);
 				error = 1;
@@ -941,14 +988,21 @@ void factor()
 		else
 		{
 			if (const_idx == -1)
+			{
 				emit(LOD, level - table[var_idx].level, table[var_idx].address);
+			}
 			else if (var_idx == -1)
+			{
 				emit(LIT, 0, table[const_idx].value);
+			}
 			else if (table[const_idx].level > table[var_idx].level)
+			{
 				emit(LIT, 0, table[const_idx].value);
+			}
 			else
+			{
 				emit(LOD, level - table[var_idx].level, table[var_idx].address);
-
+			}
 			token_index++;
 		}
 	}
@@ -964,8 +1018,7 @@ void factor()
 		token_index++;
 
 		expression();
-		if (error == -1)
-			return;
+		if (error == -1) return;
 
 		if (tokens[token_index].type != right_parenthesis)
 		{
@@ -975,17 +1028,19 @@ void factor()
 			if (type == times || type == division || type == minus || type == period || type == right_curly_brace || type == semicolon ||
 				type == keyword_end || type == equal_to || type == not_equal_to || type == less_than || type == less_than_or_equal_to ||
 				type == greater_than || type == greater_than_or_equal_to || type == keyword_then || type == keyword_do)
+			{
 				error = 1;
-
+			}
 			else
 			{
 				error = -1;
 				return;
 			}
 		}
-
 		else
+		{
 			token_index++;
+		}
 	}
 
 	else
@@ -998,8 +1053,9 @@ void factor()
 		if (type == times || type == division || type == minus || type == period || type == right_curly_brace || type == semicolon ||
 			type == keyword_end || type == equal_to || type == not_equal_to || type == less_than || type == less_than_or_equal_to ||
 			type == greater_than || type == greater_than_or_equal_to || type == keyword_then || type == keyword_do)
+		{
 			error = 1;
-
+		}
 		else
 		{
 			error = -1;
