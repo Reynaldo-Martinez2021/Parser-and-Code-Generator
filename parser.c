@@ -51,16 +51,13 @@ int getType();
 
 instruction *parse(int code_flag, int table_flag, lexeme *list)
 {
-	int i;
 	tokens = list;
 	table = calloc(ARRAY_SIZE, sizeof(symbol));
 	code = calloc(ARRAY_SIZE, sizeof(instruction));
 
-	emit(7,0,0);
-	add_symbol(3, "main", 0, 0, 0);
 	level = -1;
-
 	block();
+
 	if (error == -1)
 	{
 		free(table);
@@ -74,9 +71,7 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 		error = 1;
 	}
 
-	emit(9,0,3);
-
-	for (i = 0; i < code_index; i++)
+	for (int i = 0; i < code_index; i++)
 	{
 		if (code[i].op == CAL)
 		{
@@ -94,8 +89,6 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 			}
 		}
 	}
-
-	code[0].m = table[0].address;
 
 	if (code_flag)
 	{
@@ -128,7 +121,6 @@ void block()
 }
 
 // DBBUG THIS FUNCTION
-
 void declarations()
 {
 	int type;
@@ -391,11 +383,10 @@ void proc_declaration() {
 
 void statement()
 {
-	int symbol_idx;
-	int l = -1, m = -1;
-	int type;
 	int if_jpc_op, if_jmp_op, while_jpc_op, while_jmp_op, def_jmp_op;
-
+	int symbol_idx, type;
+	int l = -1, m = -1;
+	
 	switch (tokens[token_index].type)
 	{
 		case identifier:
@@ -405,7 +396,7 @@ void statement()
 			if (symbol_idx == -1)
 			{
 				// undeclared identifier
-				if (find_symbol(tokens[token_index].identifier_name, 1) == find_symbol(tokens[token_index].identifier_name, 3))
+				if (find_symbol(tokens[token_index].identifier_name, 1) == -1 && find_symbol(tokens[token_index].identifier_name, 3) == -1)
 				{
 					print_parser_error(8, 1);
 				}
@@ -967,7 +958,7 @@ void factor()
 		const_idx = find_symbol(tokens[token_index].identifier_name, 1);
 		var_idx = find_symbol(tokens[token_index].identifier_name, 2);
 
-		if (const_idx == var_idx)
+		if (const_idx == -1 && var_idx == -1)
 		{
 			// check number
 			if (find_symbol(tokens[token_index].identifier_name, 3) == -1)
@@ -1062,11 +1053,6 @@ void factor()
 			return;
 		}
 	}
-}
-
-int getType()
-{
-	return tokens[token_index].type;
 }
 
 int find_symbol(char name[], int kind)
