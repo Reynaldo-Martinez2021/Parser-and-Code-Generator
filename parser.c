@@ -237,7 +237,7 @@ void const_declaration()
 	}
 	else
 	{
-		value = atoi(tokens[token_index].type);
+		value = atoi(tokens[token_index].number_value);
 		token_index++;
 	}
 
