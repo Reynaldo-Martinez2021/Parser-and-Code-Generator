@@ -59,14 +59,14 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 
 	code[code_index].op = -1;
 
-	if (table_flag)
-	{
-		print_symbol_table();
-	}
-
 	if (code_flag)
 	{
 		print_assembly_code();
+	}
+
+	if (table_flag)
+	{
+		print_symbol_table();
 	}
 
 	if (error == 0)
@@ -241,7 +241,7 @@ void const_declaration()
 	}
 	else
 	{
-		value = atoi(tokens[token_index].number_value);
+		value = tokens[token_index].number_value;
 		token_index++;
 	}
 
