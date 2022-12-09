@@ -626,7 +626,8 @@ void statement()
 
 			emit(JMP, 0, while_jmp_op);
 
-			code[while_jmp_op].m = code_index;
+			// this right here 
+			code[while_jpc_op].m = code_index;
 			break;
 		}
 
