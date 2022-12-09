@@ -5,7 +5,6 @@
 	Reynaldo Martinez
 	John Dufresne
 	Tyler Slakman
-	Timothy Azinord
 */
 
 #include <stdlib.h>
@@ -90,18 +89,20 @@ instruction *parse(int code_flag, int table_flag, lexeme *list)
 		}
 	}
 
-	if (code_flag)
-	{
-		print_assembly_code();
-	}
-
-	if (table_flag)
-	{
-		print_symbol_table();
-	}
-
 	if (error == 0)
+	{
+		if (code_flag)
+		{
+			print_assembly_code();
+		}
+
+		if (table_flag)
+		{
+			print_symbol_table();
+		}
+
 		return code;
+	}
  
    	return NULL;
 }
@@ -500,7 +501,7 @@ void statement()
 				token_index++;
 
 				statement();
-				if (error == -1)return;
+				if (error == -1) return;
 
 			} while (tokens[token_index].type == semicolon);
 
@@ -737,14 +738,14 @@ void statement()
 				{
 					if (table[symbol_idx].level != level)
 					{
-						print_parser_error(23,0);
+						print_parser_error(22, 0);
 						error = 1;
 						symbol_idx = -1;
 					}
 
 					else if (table[symbol_idx].address != -1)
 					{
-						print_parser_error(22,0);
+						print_parser_error(23, 0);
 						error = 1;
 						symbol_idx = -1;
 					}
@@ -755,7 +756,7 @@ void statement()
 
 			if (tokens[token_index].type != left_curly_brace)
 			{
-				print_parser_error(15,0);
+				print_parser_error(15, 0);
 				type = tokens[token_index].type;
 
 				if (type == keyword_const || type == keyword_var || type == keyword_procedure || type == identifier ||
@@ -839,8 +840,6 @@ void condition()
 
 	type = tokens[token_index].type;
 
-	// missing relational operator
-	// need to change this logic around to avoid looking like his
 	if (type != equal_to && type != not_equal_to && type != less_than && type != less_than_or_equal_to && type != greater_than && type != greater_than_or_equal_to)
 	{
 		print_parser_error(17, 0);
@@ -975,7 +974,6 @@ void factor()
 				print_parser_error(18, 0);
 				error = 1;
 			}
-
 			emit(LOD, -1, -1);
 		}
 
@@ -997,8 +995,9 @@ void factor()
 			{
 				emit(LOD, level - table[var_idx].level, table[var_idx].address);
 			}
-			token_index++;
 		}
+
+		token_index++;
 	}
 
 	else if (tokens[token_index].type == number)
@@ -1056,7 +1055,6 @@ void factor()
 			return;
 		}
 	}
-	// token_index++;
 }
 
 int find_symbol(char name[], int kind)
