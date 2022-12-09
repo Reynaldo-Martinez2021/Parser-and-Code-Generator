@@ -857,7 +857,9 @@ void condition()
 	}
 
 	else
+	{
 		token_index++;
+	}
 
 	expression();
 	if (error == -1) return;
@@ -1054,6 +1056,7 @@ void factor()
 			return;
 		}
 	}
+	// token_index++;
 }
 
 int find_symbol(char name[], int kind)
